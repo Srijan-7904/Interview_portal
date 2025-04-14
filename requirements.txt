@@ -1,0 +1,23 @@
+# Web framework
+Flask==2.3.3
+
+# Real-time communication
+flask-socketio==5.3.6
+python-socketio==5.11.4
+gevent==24.2.1
+gevent-websocket==0.10.1
+
+# WSGI server for Render.com
+gunicorn==23.0.0
+
+# Video and face detection
+opencv-python==4.10.0.84
+numpy==1.24.4
+dlib==19.24.2
+imutils==0.5.4
+
+# AI detection and text processing
+textblob==0.18.0
+nltk==3.9.1
+
+# Note: Ensure 'shape_predictor_68_face_landmarks.dat' is in models/

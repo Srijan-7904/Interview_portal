@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        :root {
+            --primary: #00aaff;
+            --primary-dark: #0088cc;
+            --secondary: #6c757d;
+            --secondary-dark: #5a6268;
+            --background: #f4f7fa;
+            --card-bg: #ffffff;
+            --text-dark: #1a2a44;
+            --text-light: #666;
+            --success: #28a745;
+            --error: #dc3545;
+            --warning: #ffc107;
+            --chat-bg: #e9ecef;
+            --chat-bubble-me: #00aaff;
+            --chat-bubble-other: #f1f3f5;
+            --glow: rgba(0, 170, 255, 0.2);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom, var(--background), #e8eef3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        /* Navbar Styles */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-container {
+            max-width: 1350px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .navbar-brand:hover {
+            color: var(--primary);
+        }
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-grow: 1;
+            justify-content: center;
+        }
+        .nav-item {
+            list-style: none;
+        }
+        .nav-link {
+            color: var(--text-dark);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: rgba(0, 170, 255, 0.1);
+        }
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .navbar-text {
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+        .btn-nav-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-nav-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.3);
+        }
+        .navbar-toggler {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: none;
+        }
+        .navbar-collapse {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        /* Main Content */
+        .container {
+            flex: 1;
+            display: flex;
+            width: 90%;
+            margin: 0 auto;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .left-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .right-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), transparent);
+            opacity: 0.7;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            text-align: center;
+        }
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+        .video-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+        }
+        .video-container {
+            border-radius: 12px;
+            width: 100%;
+            height: 360px;
+            border: 1px solid #eee;
+            position: relative;
+            display: none;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        .video-container.active {
+            height: 480px;
+        }
+        video, img.remote-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        .video-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .control-btn {
+            padding: 0.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .control-btn.active {
+            background: var(--error);
+        }
+        .status {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        .status.connected { color: var(--success); }
+        .status.processing { color: var(--primary); }
+        .status.error { color: var(--error); }
+        #timer {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            background: rgba(255, 193, 7, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+        }
+        #messages {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 245, 238, 0.8);
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            display: none;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+        }
+        #messages.visible {
+            display: block;
+        }
+        #cheating-dashboard p {
+            font-size: 0.9rem;
+            margin: 0.3rem 0;
+        }
+        #cheating-dashboard span {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .chat-icon {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 901;
+        }
+        .chat-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background: var(--chat-bg);
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-sidebar.open {
+            right: 0;
+        }
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+        }
+        .chat-message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            opacity: 0;
+        }
+        .chat-message.me {
+            flex-direction: row-reverse;
+        }
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            font-size: 1rem;
+            margin: 0 0.5rem;
+        }
+        .chat-bubble {
+            max-width: 70%;
+            padding: 0.75rem;
+            border-radius: 12px;
+            background: var(--chat-bubble-other);
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .chat-message.me .chat-bubble {
+            background: var(--chat-bubble-me);
+            color: white;
+        }
+        .chat-timestamp {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+        #chat-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: var(--card-bg);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        #chat-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--glow);
+            outline: none;
+        }
+        #editor-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            transition: box-shadow 0.3s ease;
+        }
+        #editor-container:focus-within {
+            box-shadow: 0 0 15px var(--glow);
+        }
+        #editor {
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        #language-select {
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: var(--card-bg);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        #language-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--glow);
+            outline: none;
+        }
+        #notes {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: var(--card-bg);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            height: 150px;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        #notes:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--glow);
+            outline: none;
+        }
+        #output {
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(248, 249, 250, 0.8);
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border: 1px solid #eee;
+            opacity: 0;
+        }
+        #output.error {
+            color: var(--error);
+            background: rgba(220, 53, 69, 0.1);
+        }
+        #ai-detection {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button.secondary {
+            background: var(--secondary);
+        }
+        /* Name Input Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .name-modal {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .name-modal h2 {
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+        }
+        #name-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        #name-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--glow);
+            outline: none;
+        }
+        #submit-name {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        #submit-name:hover {
+            background: var(--primary-dark);
+        }
+        /* Footer Styles */
+        footer {
+            background: linear-gradient(135deg, var(--text-dark), var(--primary));
+            color: white;
+            padding: 2rem 0;
+            font-size: 0.9rem;
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        .footer-col {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 1rem;
+        }
+        .footer-col h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 1rem;
+        }
+        .footer-col p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        .list-unstyled {
+            list-style: none;
+            padding: 0;
+        }
+        .list-unstyled li {
+            margin-bottom: 0.5rem;
+        }
+        .list-unstyled a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .list-unstyled a:hover {
+            color: var(--warning);
+        }
+        .social-icons {
+            display: flex;
+            gap: 1rem;
+        }
+        .social-icons a {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            transition: transform 0.3s ease;
+        }
+        .social-icons a:hover {
+            transform: scale(1.2);
+        }
+        .social-icons img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .social-icons span {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background: var(--secondary);
+            border-radius: 50%;
+            color: white;
+            font-weight: 500;
+        }
+        .footer-divider {
+            border-color: rgba(255, 255, 255, 0.2);
+            margin: 1.5rem 0;
+        }
+        .footer-bottom {
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        /* Responsive Styles */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .left-content, .right-content {
+                gap: 1rem;
+            }
+            .chat-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+            .chat-sidebar.open {
+                right: 0;
+            }
+            .video-container {
+                height: 300px;
+            }
+            .video-container.active {
+                height: 400px;
+            }
+            #editor-container {
+                height: 500px;
+            }
+            .navbar-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .navbar-nav {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+                margin-top: 1rem;
+            }
+            .navbar-actions {
+                width: 100%;
+                justify-content: flex-start;
+                margin-top: 1rem;
+            }
+            .navbar-toggler {
+                display: block;
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+            }
+            .navbar-collapse {
+                display: none;
+                width: 100%;
+            }
+            .navbar-collapse.show {
+                display: flex;
+                flex-direction: column;
+            }
+            .footer-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            .social-icons {
+                justify-content: center;
+            }
+            .name-modal {
+                width: 95%;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Name Input Overlay -->
+    <div class="overlay" id="name-overlay">
+        <div class="name-modal">
+            <h2>Welcome to RookieRise</h2>
+            <input type="text" id="name-input" placeholder="Please enter your name" aria-label="Your name">
+            <button id="submit-name">Submit</button>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" aria-label="Main navigation">
+        <div class="navbar-container">
+            <a class="navbar-brand" href="http://localhost/JobPortal/index.php" aria-label="RookieRise Home">RookieRise</a>
+            <button class="navbar-toggler" aria-label="Toggle navigation" onclick="toggleNavbar()">
+                <span>☰</span>
+            </button>
+            <div class="navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" aria-label="Home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="http://localhost/JobPortal/views/dashboard.php" aria-label="Dashboard">Dashboard</a>
+                    </li>
+                </ul>
+                <div class="navbar-actions">
+                    <span class="navbar-text" aria-live="polite">Welcome, Guest!</span>
+                    <!-- <a href="../auth/logout.php" class="btn-nav-primary" aria-label="Logout">Logout</a> -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="left-content">
+            <div class="card">
+                <h1 id="portal-title">Interview Portal</h1>
+                <div id="timer">Time Remaining: 30:00</div>
+            </div>
+            <div class="card">
+                <div class="video-tabs">
+                    <button class="tab-btn active" id="self-tab">Self</button>
+                    <button class="tab-btn" id="remote-tab">Remote</button>
+                </div>
+                <div class="video-container" id="self-video-container">
+                    <video id="self-video" autoplay muted></video>
+                    <div class="video-controls">
+                        <button class="control-btn" id="mute-audio-btn">Mute</button>
+                        <button class="control-btn" id="toggle-video-btn">Video Off</button>
+                    </div>
+                </div>
+                <div class="video-container" id="remote-video-container">
+                    <img id="remote-video" class="remote-feed" alt="Remote feed">
+                </div>
+                <div class="status" id="video-status">Initializing...</div>
+            </div>
+            <div class="card" id="cheating-dashboard" style="display: none;">
+                <h2>Cheating Dashboard</h2>
+                <div id="cheating-stats">
+                    <p>Tab Switches: <span id="tab-switches">0</span></p>
+                    <p>Inactivity Periods: <span id="inactivity-periods">0</span></p>
+                    <p>Pastes: <span id="pastes">0</span></p>
+                    <p>Screen Shares: <span id="screen-shares">0</span></p>
+                    <p>Audio Alerts: <span id="audio-alerts">0</span></p>
+                    <p>No Face Detections: <span id="no-face-detections">0</span></p>
+                    <p>Gaze Off-Screen: <span id="gaze-off-screen">0</span></p>
+                    <p>Multiple Faces: <span id="multiple-faces">0</span></p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Notes</h2>
+                <textarea id="notes" placeholder="Take notes here..."></textarea>
+            </div>
+        </div>
+        <div class="right-content">
+            <div class="card">
+                <h2>Code Editor</h2>
+                <div id="editor-container">
+                    <div id="editor"></div>
+                </div>
+                <div id="controls">
+                    <select id="language-select">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="java">Java</option>
+                    </select>
+                    <button id="compile-btn">Run Code</button>
+                </div>
+                <div id="output"></div>
+                <div id="ai-detection"></div>
+            </div>
+            <div class="card" id="messages-card" style="display: none;">
+                <h2>Messages</h2>
+                <div id="messages">Messages will appear here...</div>
+                <button class="secondary" id="clear-messages">Clear Messages</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-icon" id="chat-icon"></div>
+    <div class="chat-sidebar" id="chat-sidebar">
+        <div class="chat-header">
+            <h2>Chat</h2>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <input type="text" id="chat-input" placeholder="Type a message...">
+    </div>
+
+    <!-- Footer -->
+    <footer role="contentinfo">
+        <div class="footer-container">
+            <div class="footer-col">
+                <h5>RookieRise</h5>
+                <p>Connecting talent with opportunities since 2025.</p>
+            </div>
+            <div class="footer-col">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="../dashboard.php">Home</a></li>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h5>Connect With Us</h5>
+                <div class="social-icons">
+                    <a href="https://facebook.com" target="_blank" aria-label="Follow us on Facebook" title="Facebook">
+                        <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook Icon" 
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<span>F</span>';">
+                    </a>
+                    <a href="https://twitter.com" target="_blank" aria-label="Follow us on Twitter" title="Twitter">
+                        <img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" alt="Twitter Icon" 
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<span>T</span>';">
+                    </a>
+                    <a href="https://linkedin.com" target="_blank" aria-label="Connect with us on LinkedIn" title="LinkedIn">
+                        <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn Icon" 
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<span>L</span>';">
+                    </a>
+                    <a href="https://instagram.com" target="_blank" aria-label="Follow us on Instagram" title="Instagram">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram Icon" 
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<span>I</span>';">
+                    </a>
+                </div>
+            </div>
+        </div>
+        <hr class="footer-divider">
+        <div class="footer-bottom">
+            <p>© 2025 RookieRise. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const socket = io();
+
+        // Get session_id and role from template
+        const sessionId = "{{ session_id|default('') }}";
+        const userRole = "{{ role|default('jobseeker') }}";
+
+        // Name input overlay
+        const nameOverlay = document.getElementById('name-overlay');
+        const nameInput = document.getElementById('name-input');
+        const submitNameBtn = document.getElementById('submit-name');
+        let userName = 'Guest'; // Default
+
+        // Show name input overlay on load
+        window.addEventListener('load', () => {
+            nameOverlay.classList.add('active');
+            gsap.from('.name-modal', { opacity: 0, scale: 0.8, duration: 0.5, ease: 'power2.out' });
+            nameInput.focus();
+        });
+
+        // Handle name submission
+        submitNameBtn.addEventListener('click', submitName);
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitName();
+        });
+
+        function submitName() {
+            const inputName = nameInput.value.trim();
+            if (inputName) {
+                userName = inputName;
+                updateWelcomeMessage();
+                updatePortalTitle();
+                gsap.to('.name-modal', { 
+                    opacity: 0, 
+                    scale: 0.8, 
+                    duration: 0.3, 
+                    ease: 'power2.in', 
+                    onComplete: () => {
+                        nameOverlay.classList.remove('active');
+                    }
+                });
+                proceedWithSession();
+            } else {
+                gsap.to(nameInput, { x: -10, duration: 0.1, repeat: 3, yoyo: true });
+            }
+        }
+
+        // Update welcome message
+        function updateWelcomeMessage() {
+            document.querySelector('.navbar-text').textContent = `Welcome, ${userName}!`;
+            gsap.from('.navbar-text', { opacity: 0, x: 20, duration: 0.5, ease: 'power2.out' });
+        }
+
+        // Update portal title based on role
+        function updatePortalTitle() {
+            const portalTitle = document.getElementById('portal-title');
+            portalTitle.textContent = userRole === 'interviewer' ? 'Employer Interview Portal' : 'Job Seeker Interview Portal';
+            gsap.from(portalTitle, { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' });
+        }
+
+        // Navbar toggle for mobile
+        function toggleNavbar() {
+            const collapse = document.getElementById('navbarNav');
+            collapse.classList.toggle('show');
+        }
+
+        // Proceed with session joining after name input
+        function proceedWithSession() {
+            if (userRole === 'interviewer') {
+                fetch('/create_interview', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.join_link) {
+                            socket.emit('join_role', { role: userRole, session_id: data.session_id });
+                            alert(`Share this link with the job seeker: ${data.join_link}`);
+                        } else {
+                            alert('Failed to create interview session');
+                        }
+                    })
+                    .catch(err => console.error('Error creating session:', err));
+            } else {
+                if (sessionId) {
+                    socket.emit('join_role', { role: userRole, session_id: sessionId });
+                } else {
+                    alert('No session ID provided. Please use a valid join link.');
+                }
+            }
+        }
+
+        // Video elements
+        const selfVideo = document.getElementById('self-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const selfVideoContainer = document.getElementById('self-video-container');
+        const remoteVideoContainer = document.getElementById('remote-video-container');
+        const videoStatus = document.getElementById('video-status');
+        const muteAudioBtn = document.getElementById('mute-audio-btn');
+        const toggleVideoBtn = document.getElementById('toggle-video-btn');
+
+        let stream;
+        let isAudioMuted = false;
+        let isVideoEnabled = true;
+
+        // Initialize Ace Editor
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/python");
+        editor.setOptions({
+            fontSize: "14px",
+            showPrintMargin: false,
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true
+        });
+
+        const languageSelect = document.getElementById('language-select');
+        languageSelect.addEventListener('change', () => {
+            const language = languageSelect.value;
+            const mode = {
+                'python': 'ace/mode/python',
+                'javascript': 'ace/mode/javascript',
+                'java': 'ace/mode/java'
+            }[language];
+            editor.session.setMode(mode);
+        });
+
+        // GSAP Animations on Load
+        gsap.from(".card", {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            stagger: 0.2,
+            ease: "power3.out",
+            delay: 0.5
+        });
+        gsap.from(".navbar", {
+            y: -50,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.out"
+        });
+        gsap.from("footer", {
+            y: 50,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.out",
+            delay: 0.5
+        });
+
+        // Button Hover Animations
+        document.querySelectorAll('button, .nav-link, .btn-nav-primary').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                gsap.to(btn, { scale: 1.05, duration: 0.3, ease: "power2.out" });
+            });
+            btn.addEventListener('mouseleave', () => {
+                gsap.to(btn, { scale: 1, duration: 0.3, ease: "power2.out" });
+            });
+        });
+
+        // Chat Icon Animation
+        const chatIcon = document.getElementById('chat-icon');
+        chatIcon.addEventListener('mouseenter', () => {
+            gsap.to(chatIcon, { scale: 1.1, duration: 0.3, ease: "bounce.out" });
+        });
+        chatIcon.addEventListener('mouseleave', () => {
+            gsap.to(chatIcon, { scale: 1, duration: 0.3, ease: "bounce.out" });
+        });
+
+        // Fullscreen functions
+        function enterFullscreen() {
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+                element.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+            console.log("Entered fullscreen mode");
+        }
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => console.error("Exit fullscreen error:", err));
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            console.log("Exited fullscreen mode");
+        }
+
+        // Add fullscreen button to video controls
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'control-btn';
+        fullscreenBtn.id = 'fullscreen-btn';
+        fullscreenBtn.textContent = 'Fullscreen';
+        document.querySelector('.video-controls').appendChild(fullscreenBtn);
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                enterFullscreen();
+                fullscreenBtn.textContent = 'Exit Fullscreen';
+            } else {
+                exitFullscreen();
+                fullscreenBtn.textContent = 'Fullscreen';
+            }
+            gsap.to(fullscreenBtn, { scale: 1.1, duration: 0.2, ease: "power2.out", yoyo: true, repeat: 1 });
+        });
+
+        // Start webcam
+        async function startVideo() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                if (!stream || !stream.getVideoTracks().length) {
+                    throw new Error("No video tracks available");
+                }
+                selfVideo.srcObject = stream;
+                videoStatus.textContent = "Connected";
+                videoStatus.className = "status connected";
+                selfVideo.onloadedmetadata = () => {
+                    console.log("Video metadata loaded:", selfVideo.videoWidth, "x", selfVideo.videoHeight);
+                    sendVideoFrames();
+                    startAudioMonitoring();
+                    enterFullscreen();
+                    fullscreenBtn.textContent = 'Exit Fullscreen';
+                };
+            } catch (err) {
+                videoStatus.textContent = `Error: ${err.message}`;
+                videoStatus.className = "status error";
+                console.error('Error accessing media devices:', err);
+            }
+        }
+
+        // Send video frames to server
+        function sendVideoFrames() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+
+            setInterval(() => {
+                if (isVideoEnabled && stream && selfVideo.videoWidth > 0) {
+                    ctx.drawImage(selfVideo, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    console.log(`Sending frame from ${userRole}: ${dataUrl.substring(0, 50)}...`);
+                    socket.emit('video_frame', { role: userRole, frame: dataUrl, session_id: sessionId });
+                } else {
+                    console.log("Skipping frame send: Video not enabled or not ready");
+                }
+            }, 500);
+        }
+
+        // Handle incoming video frames
+        socket.on('video_frame', (data) => {
+            console.log(`Received frame from ${data.role}: ${data.frame.substring(0, 50)}...`);
+            if (data.role !== userRole) {
+                try {
+                    remoteVideo.src = data.frame;
+                    console.log("Remote video src set successfully");
+                } catch (err) {
+                    console.error("Error setting remote video src:", err);
+                    videoStatus.textContent = "Error: Remote feed failed";
+                    videoStatus.className = "status error";
+                }
+            } else {
+                console.log("Ignoring frame from self");
+            }
+        });
+
+        // Audio mute toggle
+        muteAudioBtn.addEventListener('click', () => {
+            isAudioMuted = !isAudioMuted;
+            stream.getAudioTracks().forEach(track => track.enabled = !isAudioMuted);
+            muteAudioBtn.textContent = isAudioMuted ? 'Unmute' : 'Mute';
+            muteAudioBtn.classList.toggle('active', isAudioMuted);
+            socket.emit('mute_audio', { role: userRole, muted: isAudioMuted });
+            gsap.to(muteAudioBtn, { scale: 1.1, duration: 0.2, ease: "power2.out", yoyo: true, repeat: 1 });
+        });
+
+        // Video toggle
+        toggleVideoBtn.addEventListener('click', () => {
+            isVideoEnabled = !isVideoEnabled;
+            stream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
+            toggleVideoBtn.textContent = isVideoEnabled ? 'Video Off' : 'Video On';
+            toggleVideoBtn.classList.toggle('active', !isVideoEnabled);
+            socket.emit('toggle_video', { role: userRole, enabled: isVideoEnabled });
+            if (!isVideoEnabled) {
+                selfVideo.srcObject = null;
+            } else {
+                selfVideo.srcObject = stream;
+            }
+            gsap.to(toggleVideoBtn, { scale: 1.1, duration: 0.2, ease: "power2.out", yoyo: true, repeat: 1 });
+            gsap.to(selfVideoContainer, { opacity: isVideoEnabled ? 1 : 0.5, duration: 0.5, ease: "power2.out" });
+        });
+
+        // Video tabs
+        const selfTab = document.getElementById('self-tab');
+        const remoteTab = document.getElementById('remote-tab');
+
+        function setActiveTab(activeTab, inactiveTab, activeContainer, inactiveContainer) {
+            activeTab.classList.add('active');
+            inactiveTab.classList.remove('active');
+            activeContainer.style.display = 'block';
+            inactiveContainer.style.display = 'none';
+            console.log(`Switched to tab: ${activeTab.id}`);
+            gsap.fromTo(activeContainer, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" });
+        }
+
+        selfTab.addEventListener('click', () => {
+            setActiveTab(selfTab, remoteTab, selfVideoContainer, remoteVideoContainer);
+        });
+        remoteTab.addEventListener('click', () => {
+            setActiveTab(remoteTab, selfTab, remoteVideoContainer, selfVideoContainer);
+        });
+
+        // Set initial tab state
+        selfVideoContainer.style.display = 'block';
+        remoteVideoContainer.style.display = 'none';
+
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            if (userRole === 'interviewer') {
+                document.getElementById('messages-card').style.display = 'block';
+                document.getElementById('messages').classList.add('visible');
+                document.getElementById('cheating-dashboard').style.display = 'block';
+            } else {
+                document.getElementById('messages-card').style.display = 'none';
+                enterFullscreen();
+                fullscreenBtn.textContent = 'Exit Fullscreen';
+            }
+            startVideo();
+            setupAntiCheating();
+        });
+
+        // Timer
+        let timeLeft = 30 * 60;
+        const timerDiv = document.getElementById('timer');
+        setInterval(() => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDiv.textContent = `Time Remaining: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            timeLeft--;
+            if (timeLeft < 0) timerDiv.textContent = "Interview Ended";
+        }, 1000);
+
+        // Messages
+        const messagesDiv = document.getElementById('messages');
+        socket.on('interviewer_message', (message) => {
+            if (userRole === 'interviewer') {
+                const timestamp = new Date().toLocaleTimeString();
+                messagesDiv.textContent += `\n[${timestamp}] ${message}`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                gsap.fromTo(messagesDiv.lastChild, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
+            }
+        });
+        document.getElementById('clear-messages').addEventListener('click', () => {
+            messagesDiv.textContent = "Messages cleared.";
+            gsap.from(messagesDiv, { opacity: 0, duration: 0.5, ease: "power2.out" });
+        });
+
+        // Cheating Dashboard Updates
+        socket.on('cheating_stats_update', (stats) => {
+            if (userRole === 'interviewer') {
+                document.getElementById('tab-switches').textContent = stats.tab_switches;
+                document.getElementById('inactivity-periods').textContent = stats.inactivity_periods;
+                document.getElementById('pastes').textContent = stats.pastes;
+                document.getElementById('screen-shares').textContent = stats.screen_shares;
+                document.getElementById('audio-alerts').textContent = stats.audio_alerts;
+                document.getElementById('no-face-detections').textContent = stats.no_face_detections || 0;
+                document.getElementById('gaze-off-screen').textContent = stats.gaze_off_screen || 0;
+                document.getElementById('multiple-faces').textContent = stats.multiple_faces || 0;
+            }
+        });
+
+        // Chat Sidebar
+        const chatSidebar = document.getElementById('chat-sidebar');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+
+        chatIcon.addEventListener('click', () => {
+            const isOpen = chatSidebar.classList.toggle('open');
+            gsap.to(chatSidebar, {
+                x: isOpen ? 0 : 400,
+                duration: 0.5,
+                ease: "power3.inOut"
+            });
+        });
+
+        function addChatMessage(user, message, timestamp) {
+            const div = document.createElement('div');
+            div.className = `chat-message ${user === userRole ? 'me' : ''}`;
+            div.innerHTML = `
+                <div class="chat-avatar">${user[0].toUpperCase()}</div>
+                <div>
+                    <div class="chat-bubble">${message}</div>
+                    <div class="chat-timestamp">${timestamp}</div>
+                </div>
+            `;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            gsap.from(div, { opacity: 0, y: 20, duration: 0.5, ease: "power2.out" });
+        }
+
+        socket.on('chat_update', (messages) => {
+            chatMessages.innerHTML = '';
+            messages.forEach(msg => {
+                const [timestamp, userMsg] = msg.split('] ');
+                const [user, message] = userMsg.split(': ');
+                addChatMessage(user.slice(1), message, timestamp.slice(1));
+            });
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim()) {
+                socket.emit('chat_message', { user: userRole, message: chatInput.value.trim() });
+                chatInput.value = '';
+            }
+        });
+
+        // Code editor synchronization
+        let isCodeUpdating = false;
+        editor.session.on('change', () => {
+            if (isCodeUpdating) return;
+            const code = editor.getValue();
+            const timestamp = Date.now() / 1000;
+            socket.emit('code_change', { content: code, timestamp: timestamp });
+        });
+        socket.on('code_update', (code) => {
+            if (editor.getValue() !== code) {
+                isCodeUpdating = true;
+                const cursor = editor.session.selection.getCursor();
+                editor.setValue(code, -1);
+                editor.session.selection.moveCursorTo(cursor.row, cursor.column);
+                isCodeUpdating = false;
+            }
+        });
+
+        // Notes synchronization
+        const notesTextarea = document.getElementById('notes');
+        let isNotesUpdating = false;
+        notesTextarea.addEventListener('input', () => {
+            if (isNotesUpdating) return;
+            const notes = notesTextarea.value;
+            const timestamp = Date.now() / 1000;
+            socket.emit('notes_change', { content: notes, timestamp: timestamp });
+        });
+        socket.on('notes_update', (notes) => {
+            if (notesTextarea.value !== notes) {
+                isNotesUpdating = true;
+                notesTextarea.value = notes;
+                isNotesUpdating = false;
+            }
+        });
+
+        // Compile code
+        document.getElementById('compile-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const language = languageSelect.value;
+            const outputDiv = document.getElementById('output');
+            const aiDetectionDiv = document.getElementById('ai-detection');
+            outputDiv.textContent = "Running...";
+            outputDiv.classList.remove('error');
+            aiDetectionDiv.textContent = "Analyzing code...";
+
+            gsap.to([outputDiv, aiDetectionDiv], { opacity: 0, duration: 0.3, ease: "power2.out" });
+
+            try {
+                const response = await fetch('/compile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, language: language })
+                });
+                const result = await response.json();
+
+                if (result.output) {
+                    outputDiv.textContent = result.output;
+                } else if (result.error) {
+                    outputDiv.textContent = result.error;
+                    outputDiv.classList.add('error');
+                } else {
+                    outputDiv.textContent = "No output";
+                }
+
+                if (result.ai_result) {
+                    const { is_ai_generated, confidence, details } = result.ai_result;
+                    aiDetectionDiv.innerHTML = `
+                        <strong>AI Detection:</strong> 
+                        ${is_ai_generated ? 'Likely AI-generated' : 'Likely human-written'} 
+                        (Confidence: ${confidence}%)<br>
+                        <small>${details.join(', ')}</small>
+                    `;
+                    aiDetectionDiv.style.color = is_ai_generated ? 'var(--warning)' : 'var(--success)';
+                } else {
+                    aiDetectionDiv.textContent = "AI detection unavailable";
+                }
+
+                gsap.fromTo([outputDiv, aiDetectionDiv], 
+                    { opacity: 0, y: 20 }, 
+                    { opacity: 1, y: 0, duration: 0.5, ease: "power2.out", stagger: 0.2 }
+                );
+            } catch (error) {
+                outputDiv.textContent = `Network error: ${error.message}`;
+                outputDiv.classList.add('error');
+                aiDetectionDiv.textContent = "AI detection failed due to network error";
+                gsap.fromTo([outputDiv, aiDetectionDiv], 
+                    { opacity: 0, y: 20 }, 
+                    { opacity: 1, y: 0, duration: 0.5, ease: "power2.out", stagger: 0.2 }
+                );
+            }
+        });
+
+        // Anti-Cheating Features
+        function setupAntiCheating() {
+            if (userRole === 'jobseeker') {
+                let lastTabSwitch = 0;
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        const now = Date.now();
+                        if (now - lastTabSwitch > 5000) {
+                            socket.emit('interviewer_message', "Job Seeker switched tabs or minimized window!");
+                            lastTabSwitch = now;
+                        }
+                    }
+                });
+
+                let lastMouseMove = Date.now();
+                let inactivityTimeout;
+                document.addEventListener('mousemove', (e) => {
+                    const now = Date.now();
+                    clearTimeout(inactivityTimeout);
+                    if (now - lastMouseMove > 10000) {
+                        socket.emit('interviewer_message', "Job Seeker inactive for over 10 seconds - possible external assistance!");
+                    }
+                    lastMouseMove = now;
+                    inactivityTimeout = setTimeout(() => {
+                        socket.emit('interviewer_message', "Job Seeker inactive for over 10 seconds - possible external assistance!");
+                    }, 10000);
+                });
+
+                editor.container.addEventListener('paste', (e) => {
+                    const pastedText = e.clipboardData.getData('text');
+                    if (pastedText.length > 50) {
+                        socket.emit('interviewer_message', `Job Seeker pasted ${pastedText.length} characters into the editor!`);
+                    }
+                });
+
+                window.addEventListener('focus', () => {
+                    if (document.hasFocus() && window.innerWidth !== screen.width) {
+                        socket.emit('interviewer_message', "Job Seeker's window size suggests possible screen sharing!");
+                    }
+                });
+            }
+        }
+
+        // Audio Monitoring for External Voices
+        function startAudioMonitoring() {
+            if (userRole === 'jobseeker') {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 2048;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                let lastAudioAlert = 0;
+                const checkAudio = () => {
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    if (average > 50 && !isAudioMuted) {
+                        const now = Date.now();
+                        if (now - lastAudioAlert > 10000) {
+                            socket.emit('interviewer_message', "Unexpected audio activity detected from Job Seeker!");
+                            lastAudioAlert = now;
+                        }
+                    }
+                    requestAnimationFrame(checkAudio);
+                };
+                checkAudio();
+            }
+        }
+
+        // Display join link for interviewer
+        socket.on('join_link', (data) => {
+            if (userRole === 'interviewer') {
+                const linkDiv = document.createElement('div');
+                linkDiv.className = 'card';
+                linkDiv.innerHTML = `
+                    <h2>Join Link</h2>
+                    <p>Share this with the job seeker:</p>
+                    <input type="text" value="${data.link}" readonly style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #ddd;">
+                    <button onclick="navigator.clipboard.writeText('${data.link}'); alert('Link copied!')" style="margin-top: 0.5rem;">Copy Link</button>
+                `;
+                document.querySelector('.left-content').prepend(linkDiv);
+                gsap.from(linkDiv, { opacity: 0, y: 20, duration: 0.5, ease: "power2.out" });
+            }
+        });
+
+        // Handle errors
+        socket.on('error', (data) => {
+            alert(data.message);
+            videoStatus.textContent = data.message;
+            videoStatus.className = "status error";
+        });
+    </script>
+</body>
+</html>
